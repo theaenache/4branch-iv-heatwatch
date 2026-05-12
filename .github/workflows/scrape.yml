@@ -1,0 +1,146 @@
+name: IV Heat Scraper — Daily Run
+
+on:
+  schedule:
+    - cron: "0 15 * * *"   # 15:00 UTC = 08:00 PDT / 07:00 PST
+  workflow_dispatch:         # allow manual trigger
+
+permissions:
+  contents: write            # needed to commit CSVs back to repo
+
+jobs:
+
+  # ── Architecture 1: RSS + rule-based scoring ────────────────────────────────
+  rss-arm:
+    name: "Arch 1 · RSS + keyword"
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+
+      - name: Install dependencies
+        run: pip install feedparser requests trafilatura
+
+      - name: Run RSS arm
+        run: python arch_rss.py
+
+      - name: Upload output
+        uses: actions/upload-artifact@v4
+        with:
+          name: rss-output
+          path: data/rss_scored.csv
+          if-no-files-found: warn
+
+  # ── Architecture 2: Headless browser (Playwright) ───────────────────────────
+  headless-arm:
+    name: "Arch 2 · Headless browser"
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+
+      - name: Install dependencies
+        run: |
+          pip install playwright requests trafilatura
+          playwright install chromium --with-deps
+
+      - name: Run headless arm
+        run: python arch_headless.py
+
+      - name: Upload output
+        uses: actions/upload-artifact@v4
+        with:
+          name: headless-output
+          path: data/headless_scored.csv
+          if-no-files-found: warn
+
+  # ── Architecture 3: LLM agent (sitemap + Claude) ────────────────────────────
+  llm-arm:
+    name: "Arch 3 · LLM agent"
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+
+      - name: Install dependencies
+        run: pip install anthropic feedparser requests trafilatura
+
+      - name: Run LLM arm
+        env:
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+        run: python arch_llm.py
+
+      - name: Upload output
+        uses: actions/upload-artifact@v4
+        with:
+          name: llm-output
+          path: data/llm_scored.csv
+          if-no-files-found: warn
+
+  # ── Architecture 4: Google Alerts RSS ──────────────────────────────────────
+  alerts-arm:
+    name: "Arch 4 · Google Alerts RSS"
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+
+      - name: Install dependencies
+        run: pip install feedparser requests
+
+      - name: Run alerts arm
+        run: python arch_alerts.py
+
+      - name: Upload output
+        uses: actions/upload-artifact@v4
+        with:
+          name: alerts-output
+          path: data/alerts_scored.csv
+          if-no-files-found: warn
+
+  # ── Merge: dedup + master_comparison.csv ────────────────────────────────────
+  merge:
+    name: "Merge · master_comparison.csv"
+    runs-on: ubuntu-latest
+    needs: [rss-arm, headless-arm, llm-arm, alerts-arm]
+    if: always()   # run even if one arm fails
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Download all arm outputs
+        uses: actions/download-artifact@v4
+        with:
+          path: data/
+          merge-multiple: true
+
+      - name: Run merge
+        run: python merge.py
+
+      - name: Commit results to repo
+        run: |
+          git config user.name  "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add data/
+          git diff --cached --quiet || git commit -m "chore: daily scrape $(date -u +'%Y-%m-%d')"
+          git push
