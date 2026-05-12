@@ -1,4 +1,4 @@
-# IV Heat Scraper — Architecture Comparison
+# IV Heat Scraper Architecture Comparison
 
 Monitors Imperial Valley news media for heat-related illness coverage during hot season.
 Four parallel scraping architectures run daily via GitHub Actions and write to a shared
