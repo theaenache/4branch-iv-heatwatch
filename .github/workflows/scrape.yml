@@ -2,7 +2,7 @@ name: IV Heat Scraper — Daily Run
 
 on:
   schedule:
-    - cron: "0 15 * * *"   # 15:00 UTC = 08:00 PDT / 07:00 PST
+    - cron: "0 10 * * *"   # 10:00 UTC = 03:00 PDT / 02:00 PST
   workflow_dispatch:         # allow manual trigger
 
 permissions:
@@ -10,7 +10,7 @@ permissions:
 
 jobs:
 
-  # ── Architecture 1: RSS + rule-based scoring ────────────────────────────────
+  # ── Architecture 1: RSS + rule-based scoring ───
   rss-arm:
     name: "Arch 1 · RSS + keyword"
     runs-on: ubuntu-latest
@@ -35,7 +35,7 @@ jobs:
           path: data/rss_scored.csv
           if-no-files-found: warn
 
-  # ── Architecture 2: Headless browser (Playwright) ───────────────────────────
+  # ── Architecture 2: Headless browser (Playwright) ───
   headless-arm:
     name: "Arch 2 · Headless browser"
     runs-on: ubuntu-latest
@@ -62,7 +62,7 @@ jobs:
           path: data/headless_scored.csv
           if-no-files-found: warn
 
-  # ── Architecture 3: LLM agent (sitemap + Claude) ────────────────────────────
+  # ── Architecture 3: LLM agent (sitemap + Claude) ──
   llm-arm:
     name: "Arch 3 · LLM agent"
     runs-on: ubuntu-latest
@@ -89,7 +89,7 @@ jobs:
           path: data/llm_scored.csv
           if-no-files-found: warn
 
-  # ── Architecture 4: Google Alerts RSS ──────────────────────────────────────
+  # ── Architecture 4: Google Alerts RSS ──-
   alerts-arm:
     name: "Arch 4 · Google Alerts RSS"
     runs-on: ubuntu-latest
@@ -114,7 +114,7 @@ jobs:
           path: data/alerts_scored.csv
           if-no-files-found: warn
 
-  # ── Merge: dedup + master_comparison.csv ────────────────────────────────────
+  # ── Merge: dedup + master_comparison.csv ───
   merge:
     name: "Merge · master_comparison.csv"
     runs-on: ubuntu-latest
