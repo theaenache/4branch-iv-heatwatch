@@ -17,7 +17,7 @@ import feedparser
 from config import ALERTS_OUTPUT, GOOGLE_NEWS_QUERIES, HEADERS, REQUEST_DELAY
 from utils import append_articles, make_id, now_iso, score_article
 
-LOOKBACK_HOURS = 26
+LOOKBACK_HOURS = 26  #accounts for possible articles missed for timezone differences/confusions for whatever reason
 
 
 def cutoff_dt() -> datetime:
